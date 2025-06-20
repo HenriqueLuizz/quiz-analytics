@@ -1,0 +1,65 @@
+services:
+  # 1) Redis para API e ETL
+  redis:
+    image: redis:7
+    container_name: redis
+    ports: ['6379:6379']
+    volumes: ['redis_data:/data']
+
+  # 2) RedisGears — módulo para capturar eventos
+  redis-gears:
+    image: redislabs/redisgears:latest
+    container_name: redis-gears
+    depends_on: ['redis']
+    ports: ['6380:6379']
+    volumes:
+      - ./etl/registra-gear-interno.py:/tmp/registra-gear-interno.py
+
+  # 3) Postgres DW
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    env_file: .env
+    ports: ['5432:5432']
+    volumes: ['postgres_data:/var/lib/postgresql/data']
+
+  # 4) API Quiz (FastAPI + Redis)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: api
+    depends_on: ['redis']
+    env_file: .env
+    ports: ['8000:8000']
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  # 5) ETL Python (Redis → Postgres)
+  etl:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    container_name: etl
+    depends_on: ['redis-gears','postgres']
+    env_file: .env
+    command: python pool-pilha-rodar-fora-container.py
+
+  # 6) Banco e Metabase (reuse lab-metabase)
+  db-metabase:
+    image: postgres:13
+    container_name: db-metabase
+    env_file: .env
+    ports: ['5433:5432']
+    volumes: ['metabase_data:/var/lib/postgresql/data']
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    depends_on: ['db-metabase']
+    env_file: .env
+    ports: ['3000:3000']
+
+volumes:
+  redis_data:
+  postgres_data:
+  metabase_data:
