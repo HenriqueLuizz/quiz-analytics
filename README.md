@@ -89,7 +89,3 @@ quiz-analytics/
 - Distribuição por assunto e dificuldade
 
 Os scripts das views estão em `sql/`.
-
-## Créditos e contribuição
-
-Projeto desenvolvido por Henrique Luiz e colaboradores. Sinta-se livre para abrir issues ou pull requests! 
